@@ -15,8 +15,8 @@ class OGR2Reclinejs():
     sr_wgs84 = None
     datasource = None
     outfiles = []
-    fields = {}
-    geojson = 'geojson'
+    layers_fields = []
+    geojson = 'GeoJSON'
     formatfound = ''
     def __init__(self,infile,verbose=False): 
         supportedformats = []
@@ -47,9 +47,10 @@ class OGR2Reclinejs():
             sr = layer.GetSpatialRef() 
             if sr is None:
                 raise Exception, 'Projection not present'
-            self.fields = {}
+            fields = {}
             for s in layer.schema:
-                self.fields[s.GetName()] = s.GetTypeName()
+                fields[s.GetName()] = s.GetTypeName()
+            self.layers_fields.append(fields)
             layer.ResetReading()
             
     def info(self):
@@ -63,9 +64,12 @@ class OGR2Reclinejs():
         return data
         
     def metadata(self):
-        mfields = self.fields
-        mfields['geometry'] = self.geojson
-        return mfields
+        layers_fields = []
+        for i in range(0,len(self.layers_fields)):
+            fields = self.layers_fields[i]
+            fields[self.geojson] = 'Geometry'
+            layers_fields[i] = fields
+        return layers_fields
         
     def outputfiles(self):
         return self.outfiles
@@ -81,7 +85,7 @@ class OGR2Reclinejs():
                 ofile = open(outfile, 'wb')
                 writer = csv.writer(ofile, dialect='excel')
                 head = []
-                for f in self.fields:
+                for f in self.layers_fields[idx]:
                     head.append(f)
                 head.append(self.geojson)
                 writer.writerow(head)
@@ -89,7 +93,7 @@ class OGR2Reclinejs():
                 feature = layer.GetNextFeature()
                 while feature:
                     values = []
-                    for i in range(0,len(self.fields)):
+                    for i in range(0,len(self.layers_fields[idx])):
                         values.append(feature.GetField(i))
                     geometry = feature.GetGeometryRef()
                     ct = osr.CoordinateTransformation(sr_source, self.sr_wgs84)
@@ -120,14 +124,16 @@ def main():
         ogr2reclinejs = OGR2Reclinejs(options.input,v)
         ogr2reclinejs.conversion(options.destdir)
         if v:
-            for f in ogr2reclinejs.outputfiles():
-                
-            print "\n"
-            print "Fields: name and type"
+            idx = 0
             metadata = ogr2reclinejs.metadata()
-            for m in metadata:
-                print "%s => %s" % (m,metadata[m])
-                print "----"
-        print "File %s generated" % f
+            for f in ogr2reclinejs.outputfiles():
+                print "File %s created:" % f
+                print "\tFields for %s:" % f
+                mt = metadata[idx]
+                for m in metadata:
+                    print "\tfield\ttype"
+                    print "\t%s\t%s" % (m,mt[m])
+                idx += 1
+
 if __name__ == "__main__":
     main()
