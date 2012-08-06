@@ -12,6 +12,7 @@ except:
 from optparse import OptionParser
 
 class OGR2Reclinejs():
+    version = '1.0'
     sr_wgs84 = None
     datasource = None
     outfiles = []
@@ -68,7 +69,7 @@ class OGR2Reclinejs():
         for i in range(0,len(self.layers_fields)):
             fields = self.layers_fields[i]
             fields[self.geojson] = 'Geometry'
-            layers_fields[i] = fields
+            layers_fields.append(fields)
         return layers_fields
         
     def outputfiles(self):
@@ -106,33 +107,36 @@ class OGR2Reclinejs():
             print e
 
 def main():
-    usage = "usage: %prog [options]"
+    usage = "%prog [options] arg\n"
+    usage += " version %s " % OGR2Reclinejs.version
+
     parser = OptionParser(usage)  
-    parser.add_option("-i", "--input", action="store", dest="input", help="input file")
-    parser.add_option("-o","--ouput",action="store",dest="output",help="output file\nif not specified is used the layer name with the csv extension")
-    parser.add_option("-f", "--filetype", action="store", dest="filetype", help="input file type - default is ESRI Shapefile",default='ESRI Shapefile')
-    parser.add_option("-d", "--destinatiodir", action="store", dest="destdir", help="output directory - default is current directory",default=None)
+    #FIXME parser.add_option("-o","--ouput",action="store",dest="output",help="output file\nif not specified is used the layer name with the csv extension")
+    parser.add_option("-d", "--destinatiodir", action="store", dest="destdir", help="output directory - default is current directory, the name is the layer name with the .csv suffix",default=None)
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose", help="verbose output",default=False)
-    parser.add_option("-I","--info",action="store",dest="info",help="show info file (tips: use the ogrinfo)",default=False)
+    parser.add_option("-I","--info",action="store_true",dest="info",help="show info file, you need to use also the -i parameter (tip: with the command ogrinfo you obtain more informations)",default=False)
+    #FIXME parser.add_option("-s","--simplify",action="store",dest="simplify",help="simplify geometry,usefull for polygons with a lot of vertices\n ATTENTION: this tip is usefull to improve the display performance, but creates a new version of the dataset",default=0.9)    
+
     (options,args) = parser.parse_args()
-    if options.input is None:
+
+    if len(args) == 0:
         parser.print_help()
     else:
+        inputfile = args[0]
         v = False
         if options.verbose:
             v = True
-        ogr2reclinejs = OGR2Reclinejs(options.input,v)
+        ogr2reclinejs = OGR2Reclinejs(inputfile,v)
         ogr2reclinejs.conversion(options.destdir)
         if v:
             idx = 0
             metadata = ogr2reclinejs.metadata()
             for f in ogr2reclinejs.outputfiles():
-                print "File %s created:" % f
-                print "\tFields for %s:" % f
+                print "file %s" % f
+                print "\tfields for %s:" % f
                 mt = metadata[idx]
-                for m in metadata:
-                    print "\tfield\ttype"
-                    print "\t%s\t%s" % (m,mt[m])
+                for m in mt:
+                    print "\t\t%s => %s" % (m,mt[m])
                 idx += 1
 
 if __name__ == "__main__":
