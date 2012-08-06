@@ -94,8 +94,8 @@ class OGR2Reclinejs():
                 feature = layer.GetNextFeature()
                 while feature:
                     values = []
-                    for i in range(0,len(self.layers_fields[idx])):
-                        values.append(feature.GetField(i))
+                    for fname in self.layers_fields[idx]:
+                        values.append(feature.items()[fname])
                     geometry = feature.GetGeometryRef()
                     ct = osr.CoordinateTransformation(sr_source, self.sr_wgs84)
                     geometry.Transform(ct)
