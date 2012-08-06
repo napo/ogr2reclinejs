@@ -12,7 +12,7 @@ except:
 from optparse import OptionParser
 
 class OGR2Reclinejs():
-    version = '1.0'
+    version = '1.0a'
     sr_wgs84 = None
     datasource = None
     outfiles = []
