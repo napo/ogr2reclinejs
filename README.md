@@ -6,4 +6,5 @@ This script reads the data from an OGR source and creates a cvs file with a fiel
 requirements
 ============
 GDAL binding for python
+
 http://pypi.python.org/pypi/GDAL/1.9.1
