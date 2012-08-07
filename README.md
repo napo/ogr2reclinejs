@@ -2,6 +2,7 @@ ogr2reclinejs
 -------------
 if you use reclinejs and you want show geodata, you need a conversion in csv, and a field with a geojson geometry to display.
 <br>This script reads the data from an OGR (ex. ESRI Shapefile) source and creates a cvs file with a field "GeoJSON" where stores a single geometry in geojson format.
+<br>
 In the case of point geometry type, the script generates a CSV file with the fields LAT and LON, otherwise creates a geojson string.
 
 ATTENTION:
