@@ -15,7 +15,7 @@ http://pypi.python.org/pypi/GDAL/1.9.1
 
 Example
 -------
-with an ESRI Shapefile with point geometry
+with an ESRI Shapefile with point geometry<br>
 (the data in the example are open data with cc0 license)
 <pre>
 wget http://www.territorio.provincia.tn.it/geodati/712_Sedi_comunali_della_PAT__pup__12_12_2011.zip
