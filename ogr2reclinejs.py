@@ -5,6 +5,8 @@ Created on Sun Aug  5 21:22:51 2012
 MIT License
 """
 import os,csv
+
+#search the right version of the 
 try:
     from osgeo import ogr,osr
 except:
@@ -12,14 +14,20 @@ except:
 from optparse import OptionParser
 
 class OGR2Reclinejs():
-    version = '1.0a'
+    version = '1.0b'
     sr_wgs84 = None
     datasource = None
     outfiles = []
     layers_fields = []
+    geomtypes = []
     geojson = 'GeoJSON'
+    X = 'LON'
+    Y = 'LAT'
     formatfound = ''
     def __init__(self,infile,verbose=False): 
+        '''
+        create a object with the source file (infile = geodata source)
+        '''
         supportedformats = []
         self.sr_wgs84 = osr.SpatialReference()
         self.sr_wgs84.ImportFromEPSG(4326)
@@ -49,12 +57,19 @@ class OGR2Reclinejs():
             if sr is None:
                 raise Exception, 'Projection not present'
             fields = {}
+            self.geomtypes.append(layer.GetGeomType())
             for s in layer.schema:
                 fields[s.GetName()] = s.GetTypeName()
             self.layers_fields.append(fields)
             layer.ResetReading()
             
     def info(self):
+        '''
+        return a dictionary with some information about the source file
+        format => the file format name
+        num_layers => the numbers of layers present in the source (allowed by the GML and Tiger format)
+        layer_* => the name of the layer number *
+        '''
         data = {}
         if self.datasource != None:
             data['format'] = self.formatfound
@@ -65,17 +80,26 @@ class OGR2Reclinejs():
         return data
         
     def metadata(self):
+        '''return a list with the list of the type of fields'''
         layers_fields = []
         for i in range(0,len(self.layers_fields)):
             fields = self.layers_fields[i]
-            fields[self.geojson] = 'Geometry'
+            if self.geomtypes[i] == 1:
+                fields[self.X] = 'Geometry.X'
+                fields[self.Y] = 'Geometry.Y'
+            else:
+                    fields[self.geojson] = 'Geometry'
             layers_fields.append(fields)
         return layers_fields
         
     def outputfiles(self):
+        '''return the list of the filenames for the conversion'''
         return self.outfiles
 
     def conversion(self,destdir=None):
+        '''For each layer present in the source file create a csv file with the geometry field.
+        If the geometry type is a point, use the fields LAT and LON, otherwise create a GeoJSON string
+        ''' 
         try:
             for idx in range(0,self.datasource.GetLayerCount()):
                 layer = self.datasource.GetLayer(idx)
@@ -88,7 +112,11 @@ class OGR2Reclinejs():
                 head = []
                 for f in self.layers_fields[idx]:
                     head.append(f)
-                head.append(self.geojson)
+                if self.geomtypes[idx] == 1:
+                        head.append(self.X)
+                        head.append(self.Y)
+                else:
+                        head.append(self.geojson)
                 writer.writerow(head)
                 sr_source = layer.GetSpatialRef() 
                 feature = layer.GetNextFeature()
@@ -97,9 +125,16 @@ class OGR2Reclinejs():
                     for fname in self.layers_fields[idx]:
                         values.append(feature.items()[fname])
                     geometry = feature.GetGeometryRef()
-                    ct = osr.CoordinateTransformation(sr_source, self.sr_wgs84)
-                    geometry.Transform(ct)
-                    values.append(geometry.ExportToJson())
+                    if (sr_source != self.sr_wgs84):
+                        ct = osr.CoordinateTransformation(sr_source, self.sr_wgs84)
+                        geometry.Transform(ct)
+                    if self.geomtypes[idx] == 1:
+                        x = geometry.GetPoint(0)[0]
+                        y = geometry.GetPoint(0)[1]
+                        values.append(x)
+                        values.append(y)
+                    else:
+                        values.append(geometry.ExportToJson())
                     writer.writerow(values)
                     feature = layer.GetNextFeature()
                 layer.ResetReading()
@@ -115,7 +150,6 @@ def main():
     parser.add_option("-d", "--destinatiodir", action="store", dest="destdir", help="output directory - default is current directory, the name is the layer name with the .csv suffix",default=None)
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose", help="verbose output",default=False)
     parser.add_option("-I","--info",action="store_true",dest="info",help="show info file, you need to use also the -i parameter (tip: with the command ogrinfo you obtain more informations)",default=False)
-    #FIXME parser.add_option("-s","--simplify",action="store",dest="simplify",help="simplify geometry,usefull for polygons with a lot of vertices\n ATTENTION: this tip is usefull to improve the display performance, but creates a new version of the dataset",default=0.9)    
 
     (options,args) = parser.parse_args()
 
